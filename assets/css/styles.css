@@ -1,0 +1,256 @@
+/* styles.css */
+:root {
+  --tu-red: hsl(0, 71%, 45%);
+  --tu-red-dark: hsl(0, 71%, 35%);
+  --tu-gray-light: #f5f5f5;
+  --tu-gray-dark: #333333;
+  --font-family: 'Inter', sans-serif;
+}
+
+* {margin:0;padding:0;box-sizing:border-box;}
+body {font-family:var(--font-family);line-height:1.6;color:var(--tu-gray-dark);background:linear-gradient(to bottom right,#fff,var(--tu-gray-light));}
+.container {max-width:1200px;margin:0 auto;padding:0 1rem;}
+.navbar {background:var(--tu-red);color:#fff;padding:1rem 0;}
+.navbar .container {display:flex;justify-content:space-between;align-items:center;}
+.logo {font-size:1.5rem;font-weight:700;text-decoration:none;color:#fff;}
+.nav-links a {margin-left:1.5rem;text-decoration:none;color:#fff;font-weight:500;position:relative;}
+.nav-links a::after {content:'';position:absolute;width:0;height:2px;background:#fff;left:0;bottom:-4px;transition:width .3s;}
+.nav-links a:hover::after {width:100%;}
+.btn-login {padding:.5rem 1rem;background:var(--tu-red-dark);color:#fff;border:2px solid #fff;border-radius:4px;font-weight:600;transition:background .3s,color .3s;}
+.btn-login:hover {background:#fff;color:var(--tu-red-dark);}
+.hero {background:var(--tu-red);color:#fff;padding:4rem 0;text-align:center;}
+.hero h1 {font-size:2.5rem;margin-bottom:1rem;}
+.hero p {font-size:1.2rem;margin-bottom:2rem;}
+.btn-primary {background:#fff;color:var(--tu-red);border:none;padding:.75rem 1.5rem;font-size:1rem;font-weight:600;border-radius:4px;cursor:pointer;transition:background .3s,transform .2s;}
+.btn-primary:hover {background:var(--tu-gray-light);transform:translateY(-2px);}
+section {padding:3rem 0;}
+.tentang, .chatbot {background:#fff;}
+.tentang h2, .chatbot h2 {font-size:2rem;margin-bottom:1rem;color:var(--tu-red-dark);}
+.chat-placeholder {border:2px dashed var(--tu-red);padding:2rem;text-align:center;color:var(--tu-gray-dark);border-radius:8px;}
+.footer {background:var(--tu-gray-dark);color:#ddd;padding:2rem 0;}
+.footer .container {display:flex;justify-content:space-between;flex-wrap:wrap;}
+.footer-left p {margin:.3rem 0;}
+.social-icon {margin-left:.5rem;font-size:1.5rem;color:#ddd;text-decoration:none;transition:color .3s;}
+.social-icon:hover {color:var(--tu-red);}
+@media (max-width:768px){.navbar .container{flex-direction:column;}.nav-links{margin-top:.5rem;}.footer .container{flex-direction:column;text-align:center;}}
+
+/* Tambahan Style untuk Halaman Login & Form */
+.login-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 80px); /* Kurangi tinggi navbar */
+    background: var(--tu-gray-light);
+}
+
+.login-card {
+    background: #fff;
+    padding: 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.login-card h2 {
+    color: var(--tu-red-dark);
+    margin-bottom: 0.5rem;
+}
+
+.login-card p {
+    color: #666;
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+}
+
+.form-group {
+    text-align: left;
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--tu-gray-dark);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--tu-red);
+}
+
+.btn-primary-block {
+    width: 100%;
+    background: var(--tu-red);
+    color: #fff;
+    border: none;
+    padding: 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-primary-block:hover {
+    background: var(--tu-red-dark);
+}
+
+.error-msg {
+    background: #ffebee;
+    color: var(--tu-red-dark);
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #ffcdd2;
+}
+
+/* Dasbor Admin Styles */
+.dashboard-container {
+    display: flex;
+    min-height: 100vh;
+    background: var(--tu-gray-light);
+}
+
+.dashboard-sidebar {
+    width: 260px;
+    background: var(--tu-red);
+    color: #fff;
+    padding: 2rem 1.5rem;
+}
+
+.dashboard-sidebar h2 {
+    color: #fff;
+    margin-bottom: 2.5rem;
+    text-align: center;
+}
+
+.sidebar-menu {
+    list-style: none;
+}
+
+.sidebar-menu li {
+    margin-bottom: 0.5rem;
+}
+
+.sidebar-menu a {
+    color: #ddd;
+    text-decoration: none;
+    font-weight: 500;
+    display: block;
+    padding: 0.85rem 1.2rem;
+    border-radius: 6px;
+    transition: background 0.3s, color 0.3s;
+}
+
+.sidebar-menu a:hover, .sidebar-menu a.active {
+    background: var(--tu-red-dark);
+    color: #fff;
+    box-shadow: inset 3px 0 0 #fff;
+}
+
+.dashboard-main {
+    flex: 1;
+    padding: 2.5rem 3.5rem;
+    overflow-y: auto;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #ddd;
+}
+
+.dashboard-header h1 {
+    color: var(--tu-gray-dark);
+    font-size: 1.8rem;
+}
+
+.card {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.card h3 {
+    margin-bottom: 1.5rem;
+    color: var(--tu-red-dark);
+    border-bottom: 2px solid var(--tu-gray-light);
+    padding-bottom: 0.75rem;
+}
+
+/* Upload Form */
+.upload-form {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.upload-form input[type="file"] {
+    flex: 1;
+    padding: 0.5rem;
+    border: 2px dashed #bbb;
+    border-radius: 6px;
+    background: #fafafa;
+    cursor: pointer;
+}
+
+/* Tabel Data */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th, .data-table td {
+    padding: 1.2rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.data-table th {
+    font-weight: 600;
+    color: var(--tu-gray-dark);
+    background: #f8f9fa;
+}
+
+.data-table tr:hover {
+    background: #fdfdfd;
+}
+
+.btn-danger {
+    color: var(--tu-red);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--tu-red);
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.btn-danger:hover {
+    background: var(--tu-red);
+    color: #fff;
+}
+
+/* Logo Wrapper Adjustment */
+.logo {
+    display: flex;
+    align-items: center;
+}
