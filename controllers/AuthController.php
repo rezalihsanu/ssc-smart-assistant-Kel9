@@ -39,7 +39,9 @@ class AuthController
 
         if ($user && password_verify($password, $user['password_hash'])) {
             // Login berhasil
-            session_start();
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
             session_regenerate_id(true);
 
             $_SESSION['admin_id'] = $user['id'];
@@ -63,7 +65,9 @@ class AuthController
     // ── Proses logout ────────────────────────────────────────────────────────
     public function logout()
     {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
 
         if (isset($_SESSION['admin_id'])) {
             global $pdo;
@@ -80,18 +84,24 @@ class AuthController
         PDO $pdo,
         ?int $staffId,
         string $email,
-        string $action
+        string $action,
+        string $targetType = 'session',
+        ?int $targetId = null,
+        string $targetName = ''
     ): void {
         try {
             $ip = $_SERVER['REMOTE_ADDR'] ?? null;
             $stmt = $pdo->prepare(
                 "INSERT INTO staff_activity_logs
-                    (staff_id, staff_email, action, target_type, target_name, ip_address)
-                 VALUES (?, ?, ?, 'session', ?, ?)"
+                    (staff_id, staff_email, action, target_type, target_id, target_name, ip_address)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)"
             );
-            $stmt->execute([$staffId, $email, $action, 'Auth: ' . $action, $ip]);
+            $stmt->execute([$staffId, $email, $action, $targetType, $targetId,
+                $targetName ?: 'Auth: ' . $action, $ip]);
         } catch (PDOException $e) {
             error_log("Gagal menyimpan auth log: " . $e->getMessage());
         }
     }
+
 }
+

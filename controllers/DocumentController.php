@@ -51,11 +51,12 @@ class DocumentController
         }
 
         $extractedText = $this->extractText($destPath, $ext);
+        $summary = $this->generateSummary($extractedText);
 
         $stmt = $pdo->prepare(
             "INSERT INTO documents
-                (original_filename, stored_filename, file_path, file_type, file_size_kb, extracted_text, uploaded_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
+                (original_filename, stored_filename, file_path, file_type, file_size_kb, extracted_text, summary, uploaded_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         );
         $stmt->execute([
             $file['name'],
@@ -64,6 +65,7 @@ class DocumentController
             $ext,
             round($file['size'] / 1024),
             $extractedText,
+            $summary,
             $_SESSION['admin_id'],
         ]);
 
@@ -141,7 +143,7 @@ class DocumentController
         global $pdo;
         $stmt = $pdo->query(
             "SELECT d.id, d.original_filename, d.file_type, d.file_size_kb,
-                    d.is_active, d.uploaded_at,
+                    d.is_active, d.uploaded_at, d.summary,
                     u.email AS uploader_email
              FROM documents d
              LEFT JOIN admin_users u ON u.id = d.uploaded_by
@@ -178,6 +180,51 @@ class DocumentController
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    // ─── Buat Ringkasan Otomatis via Groq ────────────────────────────────────
+    private function generateSummary(string $text): string
+    {
+        if (empty(trim($text))) return '';
+
+        // Potong teks maksimal 3000 karakter supaya tidak buang token
+        $potongan = mb_substr($text, 0, 3000);
+
+        $payload = json_encode([
+            'model'       => 'llama-3.3-70b-versatile',
+            'max_tokens'  => 150,
+            'messages'    => [
+                [
+                    'role'    => 'system',
+                    'content' => 'Kamu adalah asisten yang meringkas dokumen peraturan kampus. Buat ringkasan singkat 2-3 kalimat dalam Bahasa Indonesia. Langsung ke inti, tanpa basa-basi.'
+                ],
+                [
+                    'role'    => 'user',
+                    'content' => "Ringkas dokumen ini:\n\n$potongan"
+                ]
+            ]
+        ]);
+
+        $apiKey = defined('GROQ_API_KEY') ? GROQ_API_KEY : getenv('GROQ_API_KEY');
+
+        $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $payload,
+            CURLOPT_HTTPHEADER     => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $apiKey,
+            ],
+            CURLOPT_TIMEOUT        => 20,
+        ]);
+
+        $response = curl_exec($ch);
+
+        if (!$response) return '';
+
+        $data = json_decode($response, true);
+        return trim($data['choices'][0]['message']['content'] ?? '');
+    }
+
     // ─── Ekstrak Teks dari File ───────────────────────────────────────────────
     private function extractText(string $path, string $ext): string
     {
@@ -203,14 +250,15 @@ class DocumentController
 
     private function extractPdfFallback(string $path): string
     {
-        $content = file_get_contents($path);
-        preg_match_all('/BT\s*(.*?)\s*ET/s', $content, $matches);
-        $text = '';
-        foreach ($matches[1] as $block) {
-            preg_match_all('/\((.*?)\)/', $block, $strings);
-            $text .= implode(' ', $strings[1]) . "\n";
+        try {
+            $parser = new \Smalot\PdfParser\Parser();
+            $pdf    = $parser->parseFile($path);
+            $text   = $pdf->getText();
+            return $text ?: '';
+        } catch (\Exception $e) {
+            error_log("PdfParser gagal: " . $e->getMessage());
+            return '';
         }
-        return $text ?: '[Teks PDF tidak dapat diekstrak. Gunakan pdftotext di server.]';
     }
 
     private function extractDocx(string $path): string

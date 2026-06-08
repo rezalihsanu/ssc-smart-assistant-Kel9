@@ -31,6 +31,7 @@ $stats = $stmtStats->fetch(PDO::FETCH_ASSOC);
 $dateFrom = $_GET['date_from'] ?? '';
 $dateTo   = $_GET['date_to']   ?? '';
 $status   = $_GET['status']    ?? '';
+$keyword  = $_GET['keyword']   ?? '';
 
 $where    = [];
 $params   = [];
@@ -39,6 +40,11 @@ if ($dateFrom) { $where[] = 'DATE(created_at) >= ?'; $params[] = $dateFrom; }
 if ($dateTo)   { $where[] = 'DATE(created_at) <= ?'; $params[] = $dateTo;   }
 if ($status && in_array($status, ['success','error','out_of_topic'])) {
     $where[] = 'status = ?'; $params[] = $status;
+}
+if ($keyword) {
+    $where[] = '(user_query LIKE ? OR bot_response LIKE ?)';
+    $params[] = "%$keyword%";
+    $params[] = "%$keyword%";
 }
 
 $sql = "SELECT id, session_id, user_query, bot_response, status, response_time_ms, created_at
@@ -50,7 +56,27 @@ $stmtLogs = $pdo->prepare($sql);
 $stmtLogs->execute($params);
 $chatLogs = $stmtLogs->fetchAll(PDO::FETCH_ASSOC);
 
-$activeFilter = $dateFrom || $dateTo || $status;
+// ── Top 10 pertanyaan terbanyak ──────────────────────────────────
+$stmtTopQ = $pdo->query("
+    SELECT user_query, COUNT(*) AS cnt
+    FROM chat_logs
+    GROUP BY user_query
+    ORDER BY cnt DESC
+    LIMIT 10
+");
+$topQueries = $stmtTopQ->fetchAll(PDO::FETCH_ASSOC);
+
+// ── Chat per hari (7 hari terakhir) ──────────────────────────────
+$stmtDaily = $pdo->query("
+    SELECT DATE(created_at) AS tgl, COUNT(*) AS total
+    FROM chat_logs
+    WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    GROUP BY DATE(created_at)
+    ORDER BY tgl ASC
+");
+$dailyChats = $stmtDaily->fetchAll(PDO::FETCH_ASSOC);
+
+$activeFilter = $dateFrom || $dateTo || $status || $keyword;
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -121,6 +147,22 @@ $activeFilter = $dateFrom || $dateTo || $status;
     .modal-box{background:#fff;border-radius:12px;padding:2rem;max-width:620px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
     .modal-close{float:right;background:none;border:none;font-size:1.3rem;cursor:pointer;color:#64748b}
     .modal-close:hover{color:#1e293b}
+
+    /* ── Analitik ─────────────────────────────────────────── */
+    .analitik-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+    @media(max-width:768px){.analitik-grid{grid-template-columns:1fr}}
+    .analitik-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:1.25rem}
+    .analitik-box h3{font-size:.9rem;font-weight:600;color:#1e293b;margin:0 0 1rem}
+    .bar-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem}
+    .bar-label{font-size:.8rem;color:#475569;width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+    .bar-wrap{flex:1;background:#e2e8f0;border-radius:999px;height:10px;overflow:hidden}
+    .bar-fill{height:100%;background:#2563eb;border-radius:999px;transition:width .4s}
+    .bar-count{font-size:.78rem;font-weight:600;color:#2563eb;min-width:24px;text-align:right}
+    .daily-row{display:flex;align-items:flex-end;gap:6px;height:80px;margin-bottom:.5rem}
+    .daily-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+    .daily-bar{width:100%;background:#2563eb;border-radius:4px 4px 0 0;min-height:4px}
+    .daily-label{font-size:.68rem;color:#94a3b8;text-align:center}
+    .daily-val{font-size:.7rem;font-weight:600;color:#2563eb}
 </style>
 </head>
 <body>
@@ -243,7 +285,14 @@ $activeFilter = $dateFrom || $dateTo || $status;
             <?php foreach ($documents as $doc): ?>
                 <tr style="<?= $doc['is_active'] ? '' : 'opacity:.55;' ?>">
                     <td><?= $doc['id'] ?></td>
-                    <td><?= htmlspecialchars($doc['original_filename']) ?></td>
+                    <td>
+                        <?= htmlspecialchars($doc['original_filename']) ?>
+                        <?php if (!empty($doc['summary'])): ?>
+                            <div style="font-size:.78rem;color:#64748b;margin-top:3px;font-style:italic;line-height:1.4">
+                                <?= htmlspecialchars($doc['summary']) ?>
+                            </div>
+                        <?php endif; ?>
+                    </td>
                     <td><span class="badge badge-success"><?= strtoupper($doc['file_type']) ?></span></td>
                     <td><?= $doc['file_size_kb'] ?> KB</td>
                     <td style="font-size:.8rem;color:#64748b"><?= htmlspecialchars($doc['uploader_email'] ?? '—') ?></td>
@@ -281,6 +330,60 @@ $activeFilter = $dateFrom || $dateTo || $status;
             </tbody>
         </table>
         <?php endif; ?>
+    <!-- ── Analitik Pertanyaan ───────────────────────────────────────── -->
+    <section class="card">
+        <div class="section-title">📈 Analitik Pertanyaan Mahasiswa</div>
+        <div class="analitik-grid">
+
+            <!-- Kolom kiri: Top pertanyaan -->
+            <div class="analitik-box">
+                <h3>🔝 Top 10 Pertanyaan Terbanyak</h3>
+                <?php if (empty($topQueries)): ?>
+                    <p class="no-data">Belum ada data percakapan.</p>
+                <?php else:
+                    $maxCnt = $topQueries[0]['cnt'];
+                ?>
+                <?php foreach ($topQueries as $q): ?>
+                    <div class="bar-row">
+                        <span class="bar-label" title="<?= htmlspecialchars($q['user_query']) ?>">
+                            <?= htmlspecialchars($q['user_query']) ?>
+                        </span>
+                        <div class="bar-wrap">
+                            <div class="bar-fill" style="width:<?= round($q['cnt'] / $maxCnt * 100) ?>%"></div>
+                        </div>
+                        <span class="bar-count"><?= $q['cnt'] ?>x</span>
+                    </div>
+                <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+
+            <!-- Kolom kanan: Grafik per hari -->
+            <div class="analitik-box">
+                <h3>📅 Volume Chat 7 Hari Terakhir</h3>
+                <?php if (empty($dailyChats)): ?>
+                    <p class="no-data">Belum ada data percakapan.</p>
+                <?php else:
+                    $maxDaily = max(array_column($dailyChats, 'total'));
+                ?>
+                <div class="daily-row">
+                <?php foreach ($dailyChats as $d):
+                    $pct = $maxDaily > 0 ? round($d['total'] / $maxDaily * 100) : 0;
+                    $tgl = date('d/m', strtotime($d['tgl']));
+                ?>
+                    <div class="daily-bar-wrap">
+                        <span class="daily-val"><?= $d['total'] ?></span>
+                        <div class="daily-bar" style="height:<?= max(4, $pct * 0.6) ?>px"></div>
+                        <span class="daily-label"><?= $tgl ?></span>
+                    </div>
+                <?php endforeach; ?>
+                </div>
+                <p style="font-size:.78rem;color:#94a3b8;margin:.5rem 0 0">
+                    Total 7 hari: <strong><?= array_sum(array_column($dailyChats, 'total')) ?></strong> percakapan
+                </p>
+                <?php endif; ?>
+            </div>
+
+        </div>
     </section>
 
     <!-- ── Log Chat dengan Filter ─────────────────────────────────────────── -->
@@ -315,11 +418,24 @@ $activeFilter = $dateFrom || $dateTo || $status;
                         <option value="error"        <?= $status==='error'         ? 'selected' : '' ?>>❌ Error</option>
                     </select>
                 </div>
+                <div>
+                    <label>🔍 Cari Kata Kunci</label>
+                    <input type="text" name="keyword"
+                           value="<?= htmlspecialchars($keyword) ?>"
+                           placeholder="Ketik kata kunci..."
+                           style="min-width:200px">
+                </div>
                 <div style="display:flex;gap:.5rem;align-items:flex-end">
                     <button type="submit" class="btn-filter">Terapkan Filter</button>
                     <?php if ($activeFilter): ?>
                         <a href="index.php?route=dashboard" class="btn-reset">Reset</a>
                     <?php endif; ?>
+                    <a href="index.php?route=export_csv&date_from=<?= urlencode($dateFrom) ?>&date_to=<?= urlencode($dateTo) ?>&status=<?= urlencode($status) ?>&keyword=<?= urlencode($keyword) ?>"
+                       class="btn-reset"
+                       style="background:#16a34a"
+                       title="Download log chat sebagai file CSV">
+                       ⬇ Export CSV
+                    </a>
                 </div>
             </div>
         </form>

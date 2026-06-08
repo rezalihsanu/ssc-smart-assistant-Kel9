@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
 -- Kredensial Default  (email: admin@ssc.com | password: password123)
 INSERT INTO admin_users (nama, email, password_hash)
 VALUES ('Admin SSC', 'admin@ssc.com',
-        '$2y$10$670q8WlAItmD6T5iK4Q.5B4wAEM6r/eUa3j3c0jW35hPxL0T7sW');
+        '$2y$10$dHG7KO85YmlQWWWXscxKiemlCj6XkEviMPrsYmMlSbAk7Oph6U5ay');
 
 -- ------------------------------------------------------------
 -- 2. documents  (metadata lengkap sesuai PRD)
