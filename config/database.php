@@ -11,7 +11,7 @@ $password = getenv('DB_PASSWORD') ?: '';
 
 // ── Groq API ──────────────────────────────────────────────────────────────────
 // Dapetin API key GRATIS di: https://console.groq.com → API Keys → Create API Key
-define('GROQ_API_KEY', 'YOUR_GROQ...MASUKKAN_API_KEY_DISINI hapus your groq...sampai disini'); 
+define('GROQ_API_KEY', getenv('GROQ_API_KEY') ?: ''); 
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
